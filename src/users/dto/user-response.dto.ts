@@ -8,8 +8,4 @@ export class UserResponseDto {
   status: boolean;
   createdAt: Date;
   updatedAt: Date;
-
-  constructor(partial: Partial<UserResponseDto>) {
-    Object.assign(this, partial);
-  }
 }

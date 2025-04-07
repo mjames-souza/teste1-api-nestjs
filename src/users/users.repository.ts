@@ -3,15 +3,14 @@ import {
   ConflictException,
   InternalServerErrorException,
 } from '@nestjs/common';
-import { DataSource, ILike, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserRole } from './user-roles.enum';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
 import { CredentialsDto } from 'src/auth/dto/credentials.dto';
-import { FindUsersQueryDto } from './dto/find-users-query.dto';
+import { UsersQueryDto } from './dto/users-query.dto';
 
 @Injectable()
 export class UsersRepository extends Repository<User> {
@@ -23,35 +22,35 @@ export class UsersRepository extends Repository<User> {
     createUserDto: CreateUserDto,
     role: UserRole,
   ): Promise<UserResponseDto> {
+    const user = await this.findByEmail(createUserDto.email);
+    if (user) {
+      throw new ConflictException('Endereço de email já está em uso');
+    }
     const { email, name, password } = createUserDto;
 
-    const user = this.create({
+    const newUser = this.create({
       email,
       name,
       role,
       status: true,
-      confirmationToken: crypto.randomBytes(32).toString('hex'),
     });
 
-    user.salt = await bcrypt.genSalt();
-    user.password = await this.hashPassword(password, user.salt);
+    newUser.salt = await bcrypt.genSalt();
+    newUser.password = await this.hashPassword(password, newUser.salt);
 
     try {
-      const savedUser = await this.save(user);
+      const savedUser = await this.save(newUser);
 
-      return new UserResponseDto({
+      return {
         id: savedUser.id,
         name: savedUser.name,
         email: savedUser.email,
-        role: savedUser.role as UserRole,
+        role: savedUser.role,
         status: savedUser.status,
         createdAt: savedUser.createdAt,
         updatedAt: savedUser.updatedAt,
-      });
+      };
     } catch (error: any) {
-      if (error.code?.toString() === '23505') {
-        throw new ConflictException('Endereço de email já está em uso');
-      }
       throw new InternalServerErrorException(
         'Erro ao salvar o usuário no banco de dados',
       );
@@ -65,6 +64,7 @@ export class UsersRepository extends Repository<User> {
   async findByEmail(email: string): Promise<User | null> {
     return this.findOne({ where: { email } });
   }
+
   async checkCredentials(credentialsDto: CredentialsDto): Promise<User | null> {
     const { email, password } = credentialsDto;
     const user = await this.findOne({
@@ -92,42 +92,39 @@ export class UsersRepository extends Repository<User> {
         'user.createdAt',
         'user.updatedAt',
       ])
-      .where('user.id = :id', { id: userId })
-      .andWhere('user.status = true') // opcional: só ativos
+      .where({ id: userId })
+      .andWhere('user.status = true')
       .getOne();
 
     if (!user) {
-      return null; // ou lance a exceção aqui se preferir
+      return null;
     }
 
-    return new UserResponseDto({
+    return {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role as UserRole,
+      role: user.role,
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-    });
+    };
   }
+
   async findUsers(
-    queryDto: FindUsersQueryDto,
+    queryDto: UsersQueryDto,
   ): Promise<{ users: User[]; total: number }> {
-    const { page = 1, limit = 10, search } = queryDto;
+    const { pageNumber = 1, pageSize = 10, sort = 'ASC', email } = queryDto;
 
-    const skip = (page - 1) * limit;
+    const skip = (pageNumber - 1) * pageSize;
 
-    const query = this.createQueryBuilder('user')
-      .where('user.status = true')
-      .skip(skip)
-      .take(limit)
-      .orderBy('user.createdAt', 'DESC');
+    const query = this.createQueryBuilder('user').where({ status: true });
 
-    if (search) {
-      query.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
-        search: `%${search}%`,
-      });
+    if (email) {
+      query.andWhere('(user.email ILIKE :email)', { email: `%${email}%` });
     }
+
+    query.skip(skip).take(pageSize).orderBy('user.createdAt', sort);
 
     const [users, total] = await query.getManyAndCount();
 

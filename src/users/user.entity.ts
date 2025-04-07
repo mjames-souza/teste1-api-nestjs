@@ -9,6 +9,7 @@ import {
   DeleteDateColumn,
 } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { UserRole } from './user-roles.enum';
 @Entity()
 @Unique(['email'])
 export class User extends BaseEntity {
@@ -22,7 +23,7 @@ export class User extends BaseEntity {
   name: string;
 
   @Column({ nullable: false, type: 'varchar', length: 20 })
-  role: string;
+  role: UserRole;
 
   @Column({ nullable: false, default: true })
   status: boolean;
@@ -32,9 +33,6 @@ export class User extends BaseEntity {
 
   @Column({ nullable: false })
   salt: string;
-
-  @Column({ nullable: true, type: 'varchar', length: 64 })
-  confirmationToken: string;
 
   @Column({ nullable: true, type: 'varchar', length: 64 })
   recoverToken: string;

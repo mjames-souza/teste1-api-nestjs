@@ -18,15 +18,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async signUp(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    if (createUserDto.password !== createUserDto.passwordConfirmation) {
-      throw new UnprocessableEntityException('As senhas não conferem');
-    }
-
-    return this.userRepository.createUser(createUserDto, UserRole.USER);
-  }
-
-  async signIn(credentialsDto: CredentialsDto) {
+  async login(credentialsDto: CredentialsDto) {
     const user = await this.userRepository.checkCredentials(credentialsDto);
 
     if (user === null) {
@@ -36,7 +28,7 @@ export class AuthService {
     const jwtPayload = {
       id: user.id,
     };
-    const token = await this.jwtService.sign(jwtPayload);
+    const token = this.jwtService.sign(jwtPayload);
 
     return { token };
   }

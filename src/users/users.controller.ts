@@ -21,26 +21,40 @@ import { RolesGuard } from 'src/auth/roles.guard';
 import { GetUser } from 'src/auth/get-user.decorator';
 import { UpdateUserDto } from './dto/update-users.dto';
 import { User } from './user.entity';
-import { FindUsersQueryDto } from './dto/find-users-query.dto';
+import { UsersQueryDto } from './dto/users-query.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 
+@ApiTags('Usuários')
+@ApiBearerAuth()
 @Controller('users')
-@UseGuards(AuthGuard(), RolesGuard)
 export class UsersController {
   constructor(private usersService: UsersService) {}
-
   @Post()
-  @Role(UserRole.ADMIN)
-  async createAdminUser(
+  @ApiOperation({ summary: 'Cria um novo usuário' })
+  @ApiResponse({ status: 201, description: 'Usuário cadastrado com sucesso' })
+  @ApiResponse({ status: 400, description: 'Dados inválidos' })
+  async createUser(
     @Body(ValidationPipe) createUserDto: CreateUserDto,
   ): Promise<ReturnUserDto> {
-    const user = await this.usersService.createAdminUser(createUserDto);
+    const user = await this.usersService.createUser(createUserDto);
     return {
       user,
-      message: 'Administrador cadastrado com sucesso',
+      message: 'Usuário cadastrado com sucesso',
     };
   }
+
   @Get(':id')
+  @UseGuards(AuthGuard(), RolesGuard)
   @Role(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Busca um usuário pelo ID' })
+  @ApiResponse({ status: 200, description: 'Usuário encontrado' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
   async findUserById(@Param('id') id): Promise<ReturnUserDto> {
     const user = await this.usersService.findUserById(id);
     return {
@@ -49,6 +63,10 @@ export class UsersController {
     };
   }
   @Patch(':id')
+  @UseGuards(AuthGuard())
+  @ApiOperation({ summary: 'Atualiza os dados de um usuário' })
+  @ApiResponse({ status: 200, description: 'Usuário atualizado com sucesso' })
+  @ApiResponse({ status: 403, description: 'Acesso negado' })
   async updateUser(
     @Body(ValidationPipe) updateUserDto: UpdateUserDto,
     @GetUser() user: User,
@@ -62,17 +80,42 @@ export class UsersController {
       return this.usersService.updateUser(updateUserDto, id);
     }
   }
+
   @Delete(':id')
-  @Role(UserRole.ADMIN)
-  async deleteUser(@Param('id') id: string) {
-    await this.usersService.deleteUser(id);
+  @UseGuards(AuthGuard())
+  @ApiOperation({ summary: 'Remove um usuário pelo ID' })
+  @ApiResponse({ status: 200, description: 'Usuário removido com sucesso' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado' })
+  async deleteUser(@Param('id') id: string, @GetUser() requester: User) {
+    await this.usersService.deleteUser(id, requester);
     return {
       message: 'Usuário removido com sucesso',
     };
   }
   @Get()
+  @UseGuards(AuthGuard(), RolesGuard)
   @Role(UserRole.ADMIN)
-  async findUsers(@Query() query: FindUsersQueryDto) {
+  @ApiOperation({ summary: 'Busca usuários com filtros opcionais' })
+  @ApiQuery({
+    name: 'pageNumber',
+    required: false,
+    type: Number,
+    description: 'Número da página',
+  })
+  @ApiQuery({
+    name: 'pageSize',
+    required: false,
+    type: Number,
+    description: 'Quantidade de itens por página',
+  })
+  @ApiQuery({
+    name: 'email',
+    required: false,
+    type: String,
+    description: 'Texto para busca',
+  })
+  @ApiResponse({ status: 200, description: 'Usuários encontrados' })
+  async findUsers(@Query() query: UsersQueryDto) {
     const found = await this.usersService.findUsers(query);
     return {
       found,
