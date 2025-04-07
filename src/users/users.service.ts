@@ -38,7 +38,7 @@ export class UsersService {
 
     const { name } = updateUserDto;
     user.name = name ?? user.name;
-    await this.usersRepository.update(id, updateUserDto);
+    await this.usersRepository.update(id, user);
     const updatedUser = await this.findUserById(id);
 
     return {
