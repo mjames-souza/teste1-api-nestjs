@@ -30,13 +30,13 @@ O acesso a alguns endpoints é protegido por **roles**:
 | Rota                  | Método | Acesso     |
 |-----------------------|--------|------------|
 | `/auth/login`         | POST   | Público    |
-| `/users`              | GET    | Admin      |
-| `/users`              | POST   | Admin      |
 | `/me `                | GET    | Autenticado |
-| `/users/{id}`         | PATCH   | Público    |
-| `/users/{id}`              | DELETE  | Admin ou Usuário Autenticado (Self delete)     |
-| `/users/change-credentials/{id}`              | PATCH   | Admin      |
+| `/users`              | GET    | Admin      |
 | `/users/{id}`         | GET    | Admin      |
+| `/users`              | POST   | Público      |
+| `/users/{id}`         | PATCH   | Autenticado    |
+| `/users/change-credentials/{id}`              | PATCH   | Autenticado      |
+| `/users/{id}`              | DELETE  | Admin ou Usuário Autenticado (Self delete)     |
 
 
 O controle é feito via **Guards e Decorators personalizados** (`@Roles('admin')`, etc).
