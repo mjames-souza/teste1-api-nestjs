@@ -11,6 +11,8 @@ import { UserRole } from './user-roles.enum';
 import { User } from './user.entity';
 import { UpdateUserDto } from './dto/update-users.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
+import { UpdateCredentialsDto } from 'src/auth/dto/update-credentials.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -34,9 +36,8 @@ export class UsersService {
       throw new NotFoundException('Usuário não encontrado');
     }
 
-    const { name, email } = updateUserDto;
+    const { name } = updateUserDto;
     user.name = name ?? user.name;
-    user.email = email ?? user.email;
     await this.usersRepository.update(id, updateUserDto);
     const updatedUser = await this.findUserById(id);
 
@@ -49,6 +50,26 @@ export class UsersService {
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     };
+  }
+
+  async changeCredentials(
+    newCredentials: UpdateCredentialsDto,
+    id: string,
+  ): Promise<void> {
+    const user = await this.findUserById(id);
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    const salt = await bcrypt.genSalt();
+
+    const newData = {
+      email: newCredentials.email,
+      password: await bcrypt.hash(newCredentials.password, salt),
+    };
+
+    await this.usersRepository.update(id, newData);
   }
 
   async deleteUser(userId: string, requester: User): Promise<void> {

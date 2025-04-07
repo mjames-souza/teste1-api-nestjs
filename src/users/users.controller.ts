@@ -29,6 +29,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
 } from '@nestjs/swagger';
+import { UpdateCredentialsDto } from 'src/auth/dto/update-credentials.dto';
 
 @ApiTags('Usuários')
 @ApiBearerAuth()
@@ -62,22 +63,43 @@ export class UsersController {
       message: 'Usuário encontrado',
     };
   }
+
   @Patch(':id')
-  @UseGuards(AuthGuard())
+  @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Atualiza os dados de um usuário' })
   @ApiResponse({ status: 200, description: 'Usuário atualizado com sucesso' })
   @ApiResponse({ status: 403, description: 'Acesso negado' })
   async updateUser(
-    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
     @GetUser() user: User,
+    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
     @Param('id') id: string,
   ) {
-    if (user.role != UserRole.ADMIN && user.id.toString() != id) {
+    if (user.role != UserRole.ADMIN && user.id != id) {
       throw new ForbiddenException(
         'Você não tem autorização para acessar esse recurso',
       );
     } else {
       return this.usersService.updateUser(updateUserDto, id);
+    }
+  }
+
+  @Patch('/change-credentials/:id')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Atualiza a senha de um usuário' })
+  @ApiResponse({ status: 200, description: 'Senha atualizado com sucesso' })
+  @ApiResponse({ status: 403, description: 'Acesso negado' })
+  async changeCredentials(
+    @GetUser() user: User,
+    @Body(ValidationPipe) newCredentials: UpdateCredentialsDto,
+    @Param('id') id: string,
+  ) {
+    if (user.id != id) {
+      throw new ForbiddenException(user.id);
+    } else {
+      await this.usersService.changeCredentials(newCredentials, id);
+      return {
+        message: 'Credenciais atualizadas com sucesso',
+      };
     }
   }
 
@@ -92,6 +114,7 @@ export class UsersController {
       message: 'Usuário removido com sucesso',
     };
   }
+
   @Get()
   @UseGuards(AuthGuard(), RolesGuard)
   @Role(UserRole.ADMIN)
