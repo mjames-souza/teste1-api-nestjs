@@ -12,7 +12,7 @@ import { User } from './user.entity';
 import { UpdateUserDto } from './dto/update-users.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
 import { UpdateCredentialsDto } from 'src/auth/dto/update-credentials.dto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {

@@ -13,6 +13,29 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - '5432:5432'
+    networks:
+      - viraliza-network
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api
+    environment:
+      DATABASE_URL: 'postgresql://postgres:pgpassword@pgsql/dbviraliza'
+      JWT_SECRET: 'super-secret'
+      PORT: 3000
+    ports:
+      - '3000:3000'
+    depends_on:
+      - pgsql
+    volumes:
+      - ./src:/app/src
+    networks:
+      - viraliza-network
 volumes:
   pgdata:
+
+networks:
+  viraliza-network:
+    driver: bridge

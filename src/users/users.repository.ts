@@ -8,7 +8,7 @@ import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { UserRole } from './user-roles.enum';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { CredentialsDto } from 'src/auth/dto/credentials.dto';
 import { UsersQueryDto } from './dto/users-query.dto';
 
